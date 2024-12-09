@@ -5,6 +5,8 @@ from arcade_hereapi.tools.geocoder import get_structured_address
 from arcade_hereapi.tools.utils import get_headers, get_url
 from httpx import Request, Response
 
+from arcade.sdk.errors import ToolExecutionError
+
 MOCK_RESPONSE = {
     "items": [
         {
@@ -87,3 +89,17 @@ async def test_get_structured_address_success(
 
     result = await get_structured_address(context=mock_context, address=address)
     assert result == tool_response
+
+
+@pytest.mark.asyncio
+async def test_get_structured_address_rate_limit_exceeded(mock_context, mock_client, mock_token):
+    url = get_url(endpoint="geocode", q="geocode", types="address", apiKey=mock_token)
+    request = Request(method="GET", url=url, headers=get_headers())
+    mock_client.get.return_value = Response(
+        status_code=429,
+        json={"status": 429, "title": "Rate limit exceeded"},
+        request=request,
+    )
+
+    with pytest.raises(ToolExecutionError):
+        await get_structured_address(context=mock_context, address="too many streets")

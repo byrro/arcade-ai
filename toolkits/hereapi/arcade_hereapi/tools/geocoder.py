@@ -21,7 +21,7 @@ async def get_structured_address(
         # There's got to be a better way to hint the LLM about the expected response...
         "A dictionary containing structured address data with the keys: countryCode, "
         "countryName, stateCode, state, county, city, district, street, postalCode, "
-        "and latitude / longitude coordinates. "
+        "and position (latitude, longitude coordinates). "
         "Returns None if the address is not found."
     ),
 ]:
