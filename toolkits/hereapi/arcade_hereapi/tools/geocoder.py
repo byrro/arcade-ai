@@ -11,6 +11,8 @@ from arcade.sdk.errors import ToolExecutionError
 
 # Implements https://www.here.com/docs/bundle/geocoding-and-search-api-v7-api-reference/page/index.html
 # Example arcade chat usage: "get the structured address data for <ADDRESS>"
+# DISCUSS:
+# I implemented a simple ApiKeyAuth class in the core sdk to use here as authorization
 @tool(requires_auth=HereAuth())
 async def get_structured_address(
     context: ToolContext,
