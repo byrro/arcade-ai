@@ -1,12 +1,12 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from arcade_hereapi.tools.geocoder import geocode_address
+from arcade_hereapi.tools.geocoder import get_structured_address
 from arcade_hereapi.tools.utils import get_headers, get_url
 from httpx import Request, Response
 
 MOCK_RESPONSE = {
-    "lombard street": [
+    "items": [
         {
             "title": "Lombard St, San Francisco, CA 94109, United States",
             "id": "here:af:streetsection:txsQzQBaGGhhFYGezc2Z8B",
@@ -31,27 +31,7 @@ MOCK_RESPONSE = {
                 "north": 37.80223,
             },
             "scoring": {"queryScore": 1.0, "fieldScore": {"streets": [1.0]}},
-        },
-        {
-            "title": "Lombard Street, London, EC3V 9, United Kingdom",
-            "id": "here:af:streetsection:G9N1Jrg5Yefiipbr1hDLJB",
-            "resultType": "street",
-            "address": {
-                "label": "Lombard Street, London, EC3V 9, United Kingdom",
-                "countryCode": "GBR",
-                "countryName": "United Kingdom",
-                "state": "England",
-                "countyCode": "LDN",
-                "county": "London",
-                "city": "London",
-                "district": "City of London",
-                "street": "Lombard Street",
-                "postalCode": "EC3V 9",
-            },
-            "position": {"lat": 51.51243, "lng": -0.08665},
-            "mapView": {"west": -0.0882, "south": 51.51193, "east": -0.08513, "north": 51.51291},
-            "scoring": {"queryScore": 1.0, "fieldScore": {"streets": [1.0]}},
-        },
+        }
     ]
 }
 
@@ -76,22 +56,34 @@ def mock_client():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "address,limit,expected_response",
+    "address,here_response,tool_response",
     [
-        ("lombard street", None, MOCK_RESPONSE["lombard street"]),
-        ("lombard street", 1, MOCK_RESPONSE["lombard street"][:1]),
+        ("unknown street", {"items": []}, None),
+        (
+            "lombard street",
+            MOCK_RESPONSE,
+            {
+                **MOCK_RESPONSE["items"][0]["address"],
+                "position": MOCK_RESPONSE["items"][0]["position"],
+            },
+        ),
     ],
 )
-async def test_geocode_address_success(
-    mock_context, mock_client, mock_token, address, limit, expected_response
+async def test_get_structured_address_success(
+    mock_context,
+    mock_client,
+    mock_token,
+    address,
+    here_response,
+    tool_response,
 ):
     url = get_url(endpoint="geocode", q=address, types="address", apiKey=mock_token)
     request = Request(method="GET", url=url, headers=get_headers())
     mock_client.get.return_value = Response(
         status_code=200,
-        json={"items": expected_response},
+        json=here_response,
         request=request,
     )
 
-    result = await geocode_address(context=mock_context, address=address, limit=limit)
-    assert result == expected_response
+    result = await get_structured_address(context=mock_context, address=address)
+    assert result == tool_response
