@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 class AuthProviderType(str, Enum):
     oauth2 = "oauth2"
+    api_key = "api_key"
 
 
 class ToolAuthorization(BaseModel):
@@ -27,6 +28,12 @@ class OAuth2(ToolAuthorization):
 
     scopes: Optional[list[str]] = None
     """The scope(s) needed for the authorized action."""
+
+
+class ApiKeyAuth(ToolAuthorization):
+    """Marks a tool as requiring API key authorization."""
+
+    provider_type: AuthProviderType = AuthProviderType.api_key
 
 
 class Atlassian(OAuth2):
@@ -87,3 +94,9 @@ class Zoom(OAuth2):
     """Marks a tool as requiring Zoom authorization."""
 
     provider_id: str = "zoom"
+
+
+class Here(ApiKeyAuth):
+    """Marks a tool as requiring HERE API authorization."""
+
+    provider_id: str = "hereapi"
