@@ -1,6 +1,7 @@
 from typing import Annotated, Optional
 
 import httpx
+from arcade_hereapi.tools.constants import DEFAULT_MIN_QUERY_SCORE
 from arcade_hereapi.tools.utils import get_headers, get_url
 
 from arcade.sdk import ToolContext, tool
@@ -14,6 +15,13 @@ from arcade.sdk.errors import ToolExecutionError
 async def get_structured_address(
     context: ToolContext,
     address: Annotated[str, "The address string to get structured data about"],
+    # DISCUSS:
+    # Is it a good idea to expose such argument to the LLM? Perhaps it could get
+    # tempted into setting a very low value just to get a response and fulfill the
+    # user request, but with a potentially wrong match...
+    min_query_score: Annotated[
+        float, "The minimum query score (from 0 to 1) to consider an address a valid match"
+    ] = DEFAULT_MIN_QUERY_SCORE,
 ) -> Annotated[
     Optional[dict],
     (
@@ -47,8 +55,11 @@ async def get_structured_address(
             if not items:
                 return None
 
+            if items[0]["scoring"]["queryScore"] < min_query_score:
+                return None
+
             # DISCUSS:
-            # Would it be better to let an exception be raises if the address or
+            # Would it be better to let an exception be raised if the address or
             # position keys aren't present in the HERE API response?
             return {
                 **items[0].get("address", {}),

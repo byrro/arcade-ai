@@ -1,6 +1,8 @@
+import copy
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from arcade_hereapi.tools.constants import DEFAULT_MIN_QUERY_SCORE
 from arcade_hereapi.tools.geocoder import get_structured_address
 from arcade_hereapi.tools.utils import get_headers, get_url
 from httpx import Request, Response
@@ -58,9 +60,9 @@ def mock_client():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "address,here_response,tool_response",
+    "address,here_response,tool_response,min_query_score",
     [
-        ("unknown street", {"items": []}, None),
+        ("unknown street", {"items": []}, None, 0.85),
         (
             "lombard street",
             MOCK_RESPONSE,
@@ -71,6 +73,7 @@ def mock_client():
                     "longitude": MOCK_RESPONSE["items"][0]["position"]["lng"],
                 },
             },
+            0.85,
         ),
     ],
 )
@@ -81,6 +84,7 @@ async def test_get_structured_address_success(
     address,
     here_response,
     tool_response,
+    min_query_score,
 ):
     url = get_url(endpoint="geocode", q=address, types="address", apiKey=mock_token)
     request = Request(method="GET", url=url, headers=get_headers())
@@ -90,8 +94,28 @@ async def test_get_structured_address_success(
         request=request,
     )
 
-    result = await get_structured_address(context=mock_context, address=address)
+    result = await get_structured_address(
+        context=mock_context,
+        address=address,
+        min_query_score=min_query_score,
+    )
     assert result == tool_response
+
+
+@pytest.mark.asyncio
+async def test_get_structured_address_low_query_score(mock_context, mock_client, mock_token):
+    url = get_url(endpoint="geocode", q="geocode", types="address", apiKey=mock_token)
+    request = Request(method="GET", url=url, headers=get_headers())
+    here_response = copy.deepcopy(MOCK_RESPONSE)
+    here_response["items"][0]["scoring"]["queryScore"] = DEFAULT_MIN_QUERY_SCORE - 0.1
+    mock_client.get.return_value = Response(
+        status_code=200,
+        json=here_response,
+        request=request,
+    )
+
+    result = await get_structured_address(context=mock_context, address="ambiguous street")
+    assert result is None
 
 
 @pytest.mark.asyncio
