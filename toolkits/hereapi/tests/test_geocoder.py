@@ -66,7 +66,10 @@ def mock_client():
             MOCK_RESPONSE,
             {
                 **MOCK_RESPONSE["items"][0]["address"],
-                "position": MOCK_RESPONSE["items"][0]["position"],
+                "position": {
+                    "latitude": MOCK_RESPONSE["items"][0]["position"]["lat"],
+                    "longitude": MOCK_RESPONSE["items"][0]["position"]["lng"],
+                },
             },
         ),
     ],

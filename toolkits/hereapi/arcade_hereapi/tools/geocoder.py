@@ -21,7 +21,7 @@ async def get_structured_address(
         # There's got to be a better way to hint the LLM about the expected response...
         "A dictionary containing structured address data with the keys: countryCode, "
         "countryName, stateCode, state, county, city, district, street, postalCode, "
-        "and position (latitude, longitude coordinates). "
+        "houseNumber, and position (latitude, longitude coordinates). "
         "Returns None if the address is not found."
     ),
 ]:
@@ -48,11 +48,14 @@ async def get_structured_address(
                 return None
 
             # DISCUSS:
-            # Would it be better to let an exception be raise if the address or position
-            # keys aren't present in the HERE API response?
+            # Would it be better to let an exception be raises if the address or
+            # position keys aren't present in the HERE API response?
             return {
                 **items[0].get("address", {}),
-                "position": items[0].get("position"),
+                "position": {
+                    "latitude": items[0].get("position", {}).get("lat"),
+                    "longitude": items[0].get("position", {}).get("lng"),
+                },
             }
 
         except httpx.RequestError as e:
