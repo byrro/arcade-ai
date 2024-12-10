@@ -2,18 +2,15 @@ from typing import Annotated, Optional
 
 import httpx
 from arcade_hereapi.tools.constants import DEFAULT_MIN_QUERY_SCORE
-from arcade_hereapi.tools.utils import get_headers, get_url
+from arcade_hereapi.tools.utils import get_api_key, get_headers, get_url
 
 from arcade.sdk import ToolContext, tool
-from arcade.sdk.auth import Here as HereAuth
 from arcade.sdk.errors import ToolExecutionError
 
 
 # Implements https://www.here.com/docs/bundle/geocoding-and-search-api-v7-api-reference/page/index.html
 # Example arcade chat usage: "get the structured address data for <ADDRESS>"
-# DISCUSS:
-# I implemented a simple ApiKeyAuth class in the core sdk to use here as authorization
-@tool(requires_auth=HereAuth())
+@tool
 async def get_structured_address(
     context: ToolContext,
     address: Annotated[str, "The address string to get structured data about"],
@@ -42,7 +39,7 @@ async def get_structured_address(
         "q": address,
         "types": "address",
         "limit": 1,
-        "apiKey": context.authorization.token,
+        "apiKey": get_api_key(),
     }
 
     url = get_url(endpoint="geocode", **query_args)
